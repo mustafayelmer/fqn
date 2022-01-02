@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {fqn} from "../Fqn";
+import {fqn} from "../../src/Fqn";
 
 export namespace ns2 {
     export class Class1 {
@@ -20,4 +20,4 @@ export namespace ns2 {
     }
     export function func1(): void {return;}
 }
-fqn.patch('ns2', ns2);
+fqn.patchModule({ns2}, 1);

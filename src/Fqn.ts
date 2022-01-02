@@ -5,8 +5,8 @@ export interface IFqn {
     /**
      * Patches given object (function, class, file, module, namespace, ...)
      * */
-    patch(name: string, ...values: Array<ValueAny>): void;
-    patch(name: Array<string>, ...values: Array<ValueAny>): void;
+    patch(obj: ValueAny, ...prefixes: Array<string>): void;
+    patchModule(obj: ValueAny, depth?: number, ...prefixes: Array<string>): void;
 
     /**
      * Returns fqn key
@@ -32,11 +32,11 @@ export interface IFqn {
 // noinspection JSUnusedGlobalSymbols
 class Fqn implements IFqn {
     // region property
-    private static DEBUG = true;
+    private static DEBUG = false;
     private static KEY = '$_fqn';
     private static SYS_FUNCTIONS: Array<string> = ['constructor', '__defineGetter__', '__defineSetter__', 'hasOwnProperty',
         '__lookupGetter__', '__lookupSetter__', 'isPrototypeOf', 'propertyIsEnumerable',
-        'toString', 'valueOf', '__proto__', 'toLocaleString', 'toJSON', '__esModule'];
+        'toString', 'valueOf', '__proto__', 'toLocaleString', 'toJSON', '__esModule', '$_fqn'];
     private _sets: Set<unknown> = new Set<unknown>();
     // endregion property
 
@@ -52,6 +52,8 @@ class Fqn implements IFqn {
     }
 
     private static _setAttribute(holder: unknown, path: string, type: string): void {
+        const desc = Object.getOwnPropertyDescriptor(holder, Fqn.KEY);
+        if (desc) { return; }
         try {
             Object.defineProperty(holder, Fqn.KEY, {value: `${path}`, configurable: false, writable: false});
             if (Fqn.DEBUG) {
@@ -93,7 +95,7 @@ class Fqn implements IFqn {
     // endregion private-static
 
     // region private-instance
-    private _run(obj: unknown, path: string): void {
+    private _run(obj: unknown, path: string, depth = -1): void {
         if (!obj) {
             return;
         }
@@ -101,61 +103,50 @@ class Fqn implements IFqn {
             return;
         }
         this._sets.add(obj);
-        Fqn._setAttribute(obj, `${path}`, 'object');
-        this._run(Object.getPrototypeOf(obj), path);
+        if (path) {
+            Fqn._setAttribute(obj, `${path}`, typeof obj === 'object' ? 'OBJECT' : 'FUNCTION');
+        }
+        this._run(Object.getPrototypeOf(obj), path, depth);
         Object.getOwnPropertyNames(obj).forEach(key => {
             if (!Fqn.SYS_FUNCTIONS.includes(key)) {
                 const value = obj[key];
+                if (!['function', 'object'].includes(typeof value)) {
+                    return;
+                }
+                if (depth < 0) {
+                    const cn = value.constructor?.name;
+                    key = (cn === 'Function') ? value.name : cn;
+                }
+                const fullPath = path ? `${path}.${key}` : key;
                 if (value) {
                     switch (typeof value) {
                         case "object":
-                            this._run(value, `${path}.${key}`);
+                            this._run(value, fullPath, depth--);
                             break;
                         case "function":
                             if (value.prototype) {
-                                Fqn._setAttribute(value.prototype, `${path}${(key === 'constructor') ? '' : '.' + key}`, 'prototype');
+                                let cPath;
+                                if (path) {
+                                    cPath = `${path}${(key === 'constructor') ? '' : '.' + key}`;
+                                } else {
+                                    cPath = (key === 'constructor') ? null : key;
+                                }
+                                Fqn._setAttribute(value.prototype, cPath, 'CLASS');
                                 Object.getOwnPropertyNames(value.prototype).forEach(k2 => {
                                     if (['object', 'function'].includes(typeof value.prototype[k2])) {
-                                        Fqn._setAttribute(value.prototype[k2], `${path}.${key}${(k2 === 'constructor') ? '' : '.' + k2}`, 'prototype');
+                                        Fqn._setAttribute(value.prototype[k2], `${fullPath}${(k2 === 'constructor') ? '' : '.' + k2}`, 'PROTO2');
                                     }
                                 });
                             }
-                            Fqn._setAttribute(value, `${path}.${key}`, 'self1');
+                            Fqn._setAttribute(value, fullPath, 'INSTANCE');
                             Object.getOwnPropertyNames(value).forEach(k2 => {
                                 if (k2 !== 'prototype' && ['object', 'function'].includes(typeof value[k2])) {
-                                    Fqn._setAttribute(value[k2], `${path}.${key}.${k2}`, 'self2');
+                                    Fqn._setAttribute(value[k2], `${fullPath}.${k2}`, 'STATIC');
                                 }
                             });
                             break;
                     }
                 }
-            }
-        });
-    }
-
-    private _patch(names: Array<string>, values: Array<ValueAny>): void {
-        names = names.map(value => Fqn._clearName(value)).filter(value => !!value);
-        values.forEach(value => {
-            if (!value || !['object', 'function'].includes(typeof value)) {
-                if (Fqn.DEBUG) {
-                    console.error(`Not valid object or function with type: ${typeof value}`);
-                }
-            } else {
-                const isFn = (typeof value === 'function');
-                const names2 = [...names];
-                let name;
-                if (isFn) {
-                    name = value.prototype?.name ?? value.name;
-                } else {
-                    name = value.constructor?.name;
-                }
-                if (name && name !== 'Object' && !names2.includes(name)) {
-                    names2.push(name);
-                }
-                if (names2.length < 1) {
-                    names2.push('*');
-                }
-                this._run(isFn ? value.prototype : value, names2.join('.'));
             }
         });
     }
@@ -167,9 +158,28 @@ class Fqn implements IFqn {
     /**
      * Patches given object (function, class, file, module, namespace, ...)
      * */
-    patch(name: string | Array<string>, ...values: Array<ValueAny>): void {
-        console.log('path', name);
-        this._patch(Fqn._flatten(name), values);
+    patch(obj: ValueAny, ...prefixes: Array<string>): void {
+        const names = prefixes.map(value => Fqn._clearName(value)).filter(value => !!value);
+        if (!obj || !['object', 'function'].includes(typeof obj)) {
+            if (Fqn.DEBUG) {
+                console.error(`Not valid object or function with type: ${typeof obj}`);
+            }
+        } else {
+            this._run((typeof obj === 'function') ? obj.prototype : obj, names.length > 0 ? names.join('.') : null, -1);
+        }
+    }
+    /**
+     * Patches given object (function, class, file, module, namespace, ...)
+     * */
+    patchModule(obj: ValueAny, depth = 1, ...prefixes: Array<string>): void {
+        const names = prefixes.map(value => Fqn._clearName(value)).filter(value => !!value);
+        if (!obj || !['object', 'function'].includes(typeof obj)) {
+            if (Fqn.DEBUG) {
+                console.error(`Not valid object or function with type: ${typeof obj}`);
+            }
+        } else {
+            this._run((typeof obj === 'function') ? obj.prototype : obj, names.length > 0 ? names.join('.') : null, depth);
+        }
     }
 
     /**
@@ -211,7 +221,7 @@ class Fqn implements IFqn {
     fnBind<T extends FuncAny>(fn: T, holder: unknown): T {
         const fqnName = this.get(fn);
         fn = fn.bind(holder);
-        Fqn._setAttribute(fn, fqnName, 'bind');
+        Fqn._setAttribute(fn, fqnName, 'BIND');
         return fn;
     }
 
@@ -226,4 +236,4 @@ class Fqn implements IFqn {
 }
 
 export const fqn: IFqn = new Fqn();
-fqn.patch(null, Fqn);
+fqn.patch({Fqn});

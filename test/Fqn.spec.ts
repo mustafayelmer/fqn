@@ -1,10 +1,10 @@
 import { strict as assert } from 'assert';
 import {fqn} from "../src";
-import {ns1} from "../src/samples/namespace1";
-import {ns2} from "../src/samples/namespace2";
-import {mdl1} from "../src/samples/module1";
-import {Js1Class1, js1Fnc1, js1Fnc2} from "../src/samples/js-style";
-import {SingleClass1, singleClass1, singleFnc1, SingleFnc2, singleFnc2} from "../src/samples/single";
+import {ns1} from "./samples/namespace1";
+import {ns2} from "./samples/namespace2";
+import {mdl1} from "./samples/module1";
+import {Js1Class1, js1Fnc1, js1Fnc2} from "./samples/js-style";
+import {SingleClass1, singleClass1, singleFnc1, SingleFnc2, singleFnc2} from "./samples/single";
 
 const insNs11 = new ns1.sub.Class1();
 const insNs12 = new ns1.sub.Class2();

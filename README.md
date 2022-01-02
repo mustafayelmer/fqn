@@ -1,11 +1,17 @@
 # fqn
 FQN (Fully Qualified Name) for JavaScript/TypeScript
 
-# Leyyo > FQN
+## Leyyo > FQN
 
 - FQN (Fully Qualified Name) for JavaScript/TypeScript
 - Support Class, Function, Namespace, Module and File
 - Support to prevent to rename names of function while binding
+
+## TODO
+- getter
+
+## Install
+``npm i @leyyo/fqn``
 
 ## Standards
 - Language: `TS`
@@ -23,21 +29,23 @@ FQN (Fully Qualified Name) for JavaScript/TypeScript
 - ``npm run test:watch`` *// runs test with watch option
 - ``npm run test:coverage`` *// runs test with coverage
 
-## Install
-``npm i @leyyo/fqn``
-
-## todo
-### Usage
+## Usage
+### Classes and Functions
 ```typescript
 import {fqn} from "@leyyo/fqn";
-export class MyClass {}
-export function myFunction1() {}
-export const myFunction2 = () => {}
-export module myModule {}
-export namespace myNamespace {}
 
-// with one name
-fqn.patch('foo', Class1, myFunction1, myFunction2, myModule, myNamespace);
+export class MyClass {}
+export function myFunction() {}
+export const myArrow = () => {}
+// patch({...}, ...names: string[]);
+fqn.patch({MyClass, MyFunction, myArrow}, 'company', 'project');
+
+console.log(fqn.get(MyClass)); // company.project.MyClass
+console.log(fqn.get(myFunction)); // company.project.myFunction
+console.log(fqn.get(myArrow)); // company.project.myArrow
+console.log(fqn.get(new MyClass())); // company.project.MyClass
+console.log(fqn.get(new myFunction())); // company.project.myFunction
+
 
 // with prefixes
 fqn.patch(['com', 'yourcompany', 'sample'], Class1, myFunction1, myFunction2, myModule, myNamespace);
@@ -53,60 +61,92 @@ const hello = new foo.bar.hello();
 console.log(fqn.get(hello)); // foo.bar.hello
 ```
 
-### Namespace
-```typescript
-import {fqn} from "@leyyo/fqn";
-
-export namespace foo {
-    export namespace bar {
-        export class Cat {
-            static meow(): void {}
-            drink(): void {}
-        }
-        export function hello() {}
-        export const world = () => {}
-    }
-}
-fqn.patch('foo', foo);
-
-// in other files or projects
-console.log(fqn.get(foo.bar.Cat.meow)); // foo.bar.Cat.meow
-console.log(fqn.get(foo.bar.hello)); // foo.bar.hello
-console.log(fqn.get(foo.bar.world)); // foo.bar.world
-
-const cat = new foo.bar.Cat();
-console.log(fqn.get(cat.drink)); // foo.bar.Cat.drink
-const hello = new foo.bar.hello();
-console.log(fqn.get(hello)); // foo.bar.hello
-```
-
-
 ### Module
 ```typescript
 import {fqn} from "@leyyo/fqn";
 
-export module fooBar {
-    export class Cat {
-        static meow(): void {}
-        drink(): void {}
+export module mammal {
+    export abstract class Base {
+        static drink(): void {
+        }
     }
-    export function hello() {}
-    export const world = () => {}
+
+    export class Cat extends Base {
+        meow(): void {
+        }
+
+        static drink(): void {
+        }
+    }
+
+    export class Dog extends Base {
+        woof(): void {
+        }
+    }
+
+    export function hello() {
+    }
+
+    export const world = () => {
+    }
 }
-fqn.patch('fooBar', fooBar);
+fqn.patchModule({mammal}, 'animal');
 
 // in other files or projects
-console.log(fqn.get(fooBar.Cat.meow)); // fooBar.Cat.meow
-console.log(fqn.get(fooBar.hello)); // fooBar.hello
-console.log(fqn.get(fooBar.world)); // fooBar.world
+const cat = new mammal.Cat();
+const dog = new mammal.Dog();
 
-const cat = new fooBar.Cat();
-console.log(fqn.get(cat.drink)); // fooBar.Cat.drink
-const hello = new fooBar.hello();
-console.log(fqn.get(hello)); // fooBar.hello
+console.log(fqn.get(mammal)); // animal.mammal
+console.log(fqn.get(mammal.Base)); // animal.mammal.Base
+console.log(fqn.get(mammal.Base.drink)); // animal.mammal.Base.drink
+console.log(fqn.get(mammal.Cat)); // animal.mammal.Cat
+console.log(fqn.get(mammal.Cat.drink)); // animal.mammal.Cat.drink ## overriden
+console.log(fqn.get(cat.meow)); // animal.mammal.Cat.meow
+console.log(fqn.get(mammal.Dog)); // animal.mammal.Dog
+console.log(fqn.get(mammal.Dog.drink)); // animal.mammal.Base.drink ## inherited
+console.log(fqn.get(dog.woof)); // animal.mammal.Dog.woof
 ```
 
-### Class
+### Namespaces
+```typescript
+import {fqn} from "@leyyo/fqn";
+
+export namespace iam {
+    export abstract class User {
+        static add(): void {}
+    }
+    export namespace visitor {
+        export class User extends iam.User {
+            static visitPage(): void {}
+        }
+        export function hello() {}
+    }
+    export namespace admin {
+        export class User extends iam.User {
+            static getRoles(): void {}
+        }
+        export function hello() {}
+    }
+}
+fqn.patchModule({iam}); // there is no any prefix
+
+// in other files or projects
+console.log(fqn.get(iam)); // iam
+console.log(fqn.get(iam.User)); // iam.User
+console.log(fqn.get(iam.User.add)); // iam.User.add
+console.log(fqn.get(iam.visitor)); // iam.visitor
+console.log(fqn.get(iam.visitor.User)); // iam.visitor.User
+console.log(fqn.get(iam.visitor.User.add)); // iam.User.add // ## inherited
+console.log(fqn.get(iam.visitor.User.visitPage)); // iam.visitor.User.visitPage
+console.log(fqn.get(iam.visitor.hello)); // iam.visitor.hello
+console.log(fqn.get(iam.admin)); // iam.admin
+console.log(fqn.get(iam.admin.User)); // iam.admin.User
+console.log(fqn.get(iam.admin.User.add)); // iam.User.add // ## inherited
+console.log(fqn.get(iam.admin.User.getRoles)); // iam.admin.User.getRoles
+console.log(fqn.get(iam.admin.hello)); // iam.admin.hello
+```
+
+### All in a file
 ```typescript
 import {fqn} from "@leyyo/fqn";
 
@@ -114,49 +154,21 @@ export class Cat {
     static meow(): void {}
     drink(): void {}
 }
-// with custom prefix
-fqn.patch(['myProject', 'Cat'], Cat);
-
-// in other files or projects
-console.log(fqn.get(Cat)); // myProject.Cat
-console.log(fqn.get(Cat.meow)); // myProject.Cat.meow
-
-const cat = new Cat();
-console.log(fqn.get(cat.drink)); // myProject.Cat.drink
-```
-
-### Class Direct
-```typescript
-import {fqn} from "@leyyo/fqn";
-
-export class Cat {
-    static meow(): void {}
-    drink(): void {}
-}
-// with custom prefix
-fqn.patchOne(Cat, 'anotherProject'); // custom property optional as ...names: String[]
-
-// in other files or projects
-console.log(fqn.get(Cat)); // anotherProject.Cat
-console.log(fqn.get(Cat.meow)); // anotherProject.Cat.meow
-
-const cat = new Cat();
-console.log(fqn.get(cat.drink)); // anotherProject.Cat.drink
-```
-
-### Function
-```typescript
-import {fqn} from "@leyyo/fqn";
-
 export function hello() {}
 export const world = () => {}
 // with custom prefix
-fqn.patch('myUtils', hello, world);
+fqn.patch(this, 'myUtils');
 
 // in other files or projects
+console.log(fqn.get(Cat)); // myUtils.Cat
+console.log(fqn.get(Cat.meow)); // myUtils.Cat.meow
+console.log(fqn.get((new Cat()).drink)); // myUtils.Cat.drink
 console.log(fqn.get(hello)); // myUtils.hello
 console.log(fqn.get(world)); // myUtils.world
-
-const hello2 = new hello();
-console.log(fqn.get(hello2)); // myUtils.hello
+console.log(fqn.get(new hello())); // myUtils.hello
 ```
+
+## Author
+- `Date` 2021-11-01
+- `Name` Mustafa Yelmer
+- `Repo` [github.com/mustafayelmer/fqn](https://github.com/mustafayelmer/fqn)

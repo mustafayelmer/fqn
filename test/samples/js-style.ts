@@ -1,4 +1,4 @@
-import {fqn} from "../Fqn";
+import {fqn} from "../../src/Fqn";
 
 export const js1Fnc1 = (): void => {return}
 export function js1Fnc2(): void {return;}
@@ -8,4 +8,4 @@ export class Js1Class1 {
 }
 export const ins2 = new Js1Class1();
 export const ins3 = new js1Fnc2();
-fqn.patch('js', this);
+fqn.patch(this, 'js');
