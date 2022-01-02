@@ -30,6 +30,41 @@ FQN (Fully Qualified Name) for JavaScript/TypeScript
 - ``npm run test:coverage`` *// runs test with coverage
 
 ## Usage
+### Interface
+```typescript
+export interface Fqn {
+    /**
+     * Patches given object (function, class, file, ...)
+     * */
+    patch(targets: { ... }, ...prefixes: Array<string>): void;
+    /**
+     * Patches given object (module, namespace)
+     * */
+    patchModule(targets: { ... }, depth?: number, ...prefixes: Array<string>): void;
+
+    /**
+     * Returns fqn key
+     * */
+    get key(): string;
+
+    /**
+     * Returns fqn of given value
+     * */
+    get(value: unknown): string | undefined;
+
+    /**
+     * Binds given function with saving fqn
+     * */
+    fnBind<T extends FuncAny>(fn: T, holder: unknown): T;
+
+    /**
+     * Binds given functions with saving fqn
+     * */
+    fnBindAll(holder: unknown, ...functions: Array<FuncAny>): void;
+}
+
+```
+
 ### Classes and Functions
 ```typescript
 import {fqn} from "@leyyo/fqn";
@@ -45,20 +80,6 @@ console.log(fqn.get(myFunction)); // company.project.myFunction
 console.log(fqn.get(myArrow)); // company.project.myArrow
 console.log(fqn.get(new MyClass())); // company.project.MyClass
 console.log(fqn.get(new myFunction())); // company.project.myFunction
-
-
-// with prefixes
-fqn.patch(['com', 'yourcompany', 'sample'], Class1, myFunction1, myFunction2, myModule, myNamespace);
-
-// in other files or projects
-console.log(fqn.get(foo.bar.Cat.meow)); // foo.bar.Cat.meow
-console.log(fqn.get(foo.bar.hello)); // foo.bar.hello
-console.log(fqn.get(foo.bar.world)); // foo.bar.world
-
-const cat = new foo.bar.Cat();
-console.log(fqn.get(cat.drink)); // foo.bar.Cat.drink
-const hello = new foo.bar.hello();
-console.log(fqn.get(hello)); // foo.bar.hello
 ```
 
 ### Module
@@ -90,7 +111,7 @@ export module mammal {
     export const world = () => {
     }
 }
-fqn.patchModule({mammal}, 'animal');
+fqn.patchModule({mammal}, 1, 'animal');
 
 // in other files or projects
 const cat = new mammal.Cat();
