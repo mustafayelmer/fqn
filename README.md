@@ -4,6 +4,7 @@ FQN (Fully Qualified Name) for JavaScript/TypeScript
 ## Leyyo > FQN
 
 - FQN (Fully Qualified Name) for JavaScript/TypeScript
+- Provides decorator for only class, because module, namespace and functions are not allowed for decorators
 - Support Class, Function, Namespace, Module and File
 - Support to prevent to rename names of function while binding
 
@@ -63,6 +64,23 @@ export interface Fqn {
     fnBindAll(holder: unknown, ...functions: Array<FuncAny>): void;
 }
 
+```
+### Decorator
+```typescript
+import {fqn} from "@leyyo/fqn";
+
+@Fqn('test')
+class SampleClass {
+    static staticMethod() {}
+    instanceMethod() {}
+}
+
+console.log(fqn.get(SampleClass)); // test.SampleClass
+console.log(fqn.get(SampleClass.staticMethod)); // test.SampleClass.staticMethod
+
+const instance = new SampleClass();
+console.log(fqn.get(instance)); // test.SampleClass
+console.log(fqn.get(instance.instanceMethod)); // test.SampleClass.instanceMethod
 ```
 
 ### Classes and Functions

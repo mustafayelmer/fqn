@@ -1,6 +1,6 @@
 {
   "name": "@leyyo/fqn",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "FQN (Fully Qualified Name) for JavaScript/TypeScript",
   "keywords": ["fqn", "fully qualified name", "class name", "namespace name", "module name"],
   "repository": {
