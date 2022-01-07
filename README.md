@@ -7,9 +7,7 @@ FQN (Fully Qualified Name) for JavaScript/TypeScript
 - Provides decorator for only class, because module, namespace and functions are not allowed for decorators
 - Support Class, Function, Namespace, Module and File
 - Support to prevent to rename names of function while binding
-
-## TODO
-- getter
+- It ignores `getter` and `setter` properties
 
 ## Install
 ``npm i @leyyo/fqn``
@@ -37,11 +35,11 @@ export interface Fqn {
     /**
      * Patches given object (function, class, file, ...)
      * */
-    patch(targets: { ... }, ...prefixes: Array<string>): void;
+    patch(targets: Record<string, any>, ...prefixes: Array<string>): void;
     /**
      * Patches given object (module, namespace)
      * */
-    patchModule(targets: { ... }, depth?: number, ...prefixes: Array<string>): void;
+    patchModule(targets: Record<string, any>, depth?: number, ...prefixes: Array<string>): void;
 
     /**
      * Returns fqn key

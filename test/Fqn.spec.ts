@@ -11,6 +11,30 @@ class SampleClass {
     static sampleMethod() {}
 }
 
+@Fqn()
+export class GetterSetter {
+    private _field1: string;
+    private static _field2: string;
+
+
+    get field1(): string {
+        throw new Error('must be throw: get field1');
+    }
+
+    set field1(value: string) {
+        throw new Error('must be throw: set field1');
+    }
+
+    static get field2(): string {
+        throw new Error('must be throw: get field2');
+    }
+
+    static set field2(value: string) {
+        throw new Error('must be throw: set field2');
+    }
+    getField3() {}
+    static getField4() {}
+}
 describe('namespace #plain', () => {
     it('ns1', () => {
         assert.equal(fqn.get(ns1), 'ns1');
@@ -132,7 +156,6 @@ describe('namespace #nested', () => {
         assert.equal(fqn.get(ns2.func1), 'ns2.func1');
     });
 });
-
 describe('module', () => {
     it('mdl1', () => {
         assert.equal(fqn.get(mdl1), 'mdl1');
@@ -235,7 +258,6 @@ describe('single', () => {
         assert.equal(fqn.get(singleFnc2), 'SingleFnc2');
     });
 });
-
 describe('decorator', () => {
     it('test.SampleClass', () => {
         assert.equal(fqn.get(SampleClass), 'test.SampleClass');
@@ -246,5 +268,10 @@ describe('decorator', () => {
     });
     it('test.SampleClass.sampleMethod', () => {
         assert.equal(fqn.get(SampleClass.sampleMethod), 'test.SampleClass.sampleMethod');
+    });
+});
+describe('getter-setter', () => {
+    it('test.SampleClass', () => {
+        assert.equal(fqn.get(GetterSetter), 'GetterSetter');
     });
 });
