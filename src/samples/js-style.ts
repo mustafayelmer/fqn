@@ -1,4 +1,4 @@
-import {fqn} from "../../src/Fqn";
+import {fqn} from "../FqnImpl";
 
 export const js1Fnc1 = (): void => {return}
 export function js1Fnc2(): void {return;}

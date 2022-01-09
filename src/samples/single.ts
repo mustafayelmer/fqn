@@ -1,4 +1,4 @@
-import {fqn} from "../../src/Fqn";
+import {fqn} from "../FqnImpl";
 
 export const singleFnc1 = () : void => {return}
 export function SingleFnc2(): void {return;}

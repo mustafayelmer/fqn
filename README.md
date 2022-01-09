@@ -28,6 +28,10 @@ FQN (Fully Qualified Name) for JavaScript/TypeScript
 - ``npm run test:watch`` *// runs test with watch option
 - ``npm run test:coverage`` *// runs test with coverage
 
+## Todo
+- Overwrite Function.name
+- Define keyword (static, instance, class, function, constructor, module/namespace) etc
+
 ## Usage
 ### Interface
 ```typescript

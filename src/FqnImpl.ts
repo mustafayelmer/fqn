@@ -1,52 +1,9 @@
-import {Core, FuncLike} from "@leyyo/core";
-import {DeveloperFqnException} from "./errors";
+// noinspection JSUnusedGlobalSymbols
 
-type ValueAny = FuncLike | unknown;
+import {FqnLike, FqnValueLike, FuncLike, Leyyo, Severity} from "@leyyo/core";
 
-const _KEY = Symbol.for("@fqn");
-
-export interface IFqn {
-    /**
-     * Patches given object (function, class, file, module, namespace, ...)
-     * */
-    patch(obj: ValueAny, ...prefixes: Array<string>): void;
-    patchModule(obj: ValueAny, depth?: number, ...prefixes: Array<string>): void;
-
-    /**
-     * Returns fqn key
-     * */
-    get key(): Symbol;
-
-    /**
-     * Returns fqn of given value
-     * */
-    get(value: unknown): string | undefined;
-
-    /**
-     * Binds given function with saving fqn
-     * */
-    fnBind<T extends FuncLike>(fn: T, holder: unknown): T;
-
-    /**
-     * Binds given functions with saving fqn
-     * */
-    fnBindAll(holder: unknown, ...functions: Array<FuncLike>): void;
-}
-/**
- * Decorates class with optional prefixes
- *
- * Class fqn will be `{prefixes}.{class}`
- */
-export function Fqn(...prefixes: Array<string>): ClassDecorator {
-    return (target: unknown) => {
-        fqn.patch({[(target as FuncLike).name]: target}, ...prefixes);
-    };
-}
-
-// noinspection JSUnusedGlobalSymbols,JSUnusedLocalSymbols
-class FqnImpl implements IFqn {
+class FqnImpl implements FqnLike {
     // region property
-    private static DEBUG = true;
     private static SYS_FUNCTIONS: Array<string> = ['constructor', '__defineGetter__', '__defineSetter__', 'hasOwnProperty',
         '__lookupGetter__', '__lookupSetter__', 'isPrototypeOf', 'propertyIsEnumerable',
         'toString', 'valueOf', '__proto__', 'toLocaleString', 'toJSON', '__esModule'];
@@ -59,31 +16,18 @@ class FqnImpl implements IFqn {
     private static _isAllowed(value: unknown): boolean {
         return this.ALLOWED.includes(typeof value);
     }
-    private static _log(severity: string, message: unknown, ...optionalParams: Array<unknown>) {
-        if (!FqnImpl.DEBUG) {
-            return;
-        }
-        console[severity](`[Fqn] - ${message}`, ...optionalParams);
-    }
-    private static _ignore(reason: string, params: Record<string, unknown>) {
-        this._log('debug', reason, params);
-    }
-    private static _success(kind: string, path: string, params: Record<string, unknown>) {
-        this._log('log', `${kind}: ${path}`, params);
-    }
     private static _setAttribute(holder: unknown, path: string, type: string, ...keys: Array<string>): void {
-        const desc = Object.getOwnPropertyDescriptor(holder, _KEY);
+        const desc = Object.getOwnPropertyDescriptor(holder, Leyyo.FQN_KEY);
         if (desc) { return; }
-        // if (holder[_KEY]) { return; }
         try {
-            Object.defineProperty(holder, _KEY, {value: `${path}`, configurable: false, writable: false, enumerable: false});
-            // FqnImpl._success('prop', path, {type, keys});
+            Object.defineProperty(holder, Leyyo.FQN_KEY, {value: `${path}`, configurable: false, writable: false, enumerable: false});
+            Leyyo.log(FqnImpl, Severity.INFO, path, {type, keys});
         } catch (e) {
             try {
-                holder[_KEY] = path;
-                // FqnImpl._success('direct', path, {type, keys});
+                holder[Leyyo.FQN_KEY] = path;
+                Leyyo.log(FqnImpl, Severity.INFO, path, {type, keys});
             } catch (e) {
-                FqnImpl._log('error', path, {message: e.message, type, keys});
+                Leyyo.log(FqnImpl, Severity.WARN, e.message, {name: e.name, type, keys});
             }
         }
 
@@ -91,25 +35,19 @@ class FqnImpl implements IFqn {
 
     private static _clearName(value: string): string | null {
         if (typeof value !== 'string') {
-            throw new DeveloperFqnException('Invalid prefix', value);
+            Leyyo.raise(FqnImpl, 'Invalid prefix', {value});
         }
-        value = value.trim();
-        if (value === '') {
-            return null;
+        let name = Leyyo.clazz(value);
+        if (!name) {return null;}
+        while (name.startsWith('.')) {
+            name = Leyyo.clazz(name.substring(1));
+            if (!name) {return null;}
         }
-        while (value.startsWith('.')) {
-            value = value.substring(1).trim();
-            if (value === '') {
-                return null;
-            }
+        while (name.endsWith('.')) {
+            name = Leyyo.clazz(name.substring(0, name.length - 1));
+            if (!name) {return null;}
         }
-        while (value.endsWith('.')) {
-            value = value.substring(0, value.length - 1).trim();
-            if (value === '') {
-                return null;
-            }
-        }
-        return value;
+        return name;
     }
 
     // endregion private-static
@@ -143,20 +81,16 @@ class FqnImpl implements IFqn {
         }
         Object.getOwnPropertyNames(obj).forEach(key => {
             if (typeof key === 'symbol') {
-                // FqnImpl._ignore('isSymbol', {place: 1, path, key});
                 return;
             }
             if (FqnImpl.SYS_FUNCTIONS.includes(key)) {
-                // FqnImpl._ignore('isSystemFunction', {place: 1, path, key});
                 return;
             }
             const value = obj[key];
             if (!value) {
-                // FqnImpl._ignore('notValue', {place: 1, path, key});
                 return;
             }
             if (!FqnImpl._isAllowed(value)) {
-                // FqnImpl._ignore('isNotAllowed', {place: 1, path, key});
                 return;
             }
             if (depth < 0) {
@@ -180,48 +114,33 @@ class FqnImpl implements IFqn {
                         FqnImpl._setAttribute(value.prototype, cPath, 'CLASS', key);
                         Object.getOwnPropertyNames(value.prototype).forEach(k2 => {
                             if (typeof key === 'symbol') {
-                                // FqnImpl._ignore('isSymbol', {place: 2, path, key, k2});
                                 return;
                             }
                             if (['constructor'].includes(k2)) {
-                                // FqnImpl._ignore('isSystemFunction', {place: 2, path, key, k2});
                                 return;
                             }
                             const desc = Object.getOwnPropertyDescriptor(value.prototype, k2);
                             if (typeof desc?.value === 'function' && typeof desc?.get !== 'function') {
                                 if (FqnImpl._isAllowed(value.prototype[k2])) {
                                     FqnImpl._setAttribute(value.prototype[k2], `${fullPath}${(k2 === 'constructor') ? '' : '.' + k2}`, 'PROTO2', key, k2);
-                                } else {
-                                    // FqnImpl._ignore('isNotAllowed', {place: 2, path, key, k2});
                                 }
-                            } else {
-                                // FqnImpl._ignore('InvalidDescriptor', {place: 2, path, key, k2, value: typeof desc?.value, get: typeof desc?.get});
                             }
                         });
                     }
                     Object.getOwnPropertyNames(value).forEach(k2 => {
                         if (typeof key === 'symbol') {
-                            // FqnImpl._ignore('isSymbol', {place: 3, path, key, k2});
                             return;
                         }
                         if (['prototype'].includes(k2)) {
-                            // FqnImpl._ignore('isSystemFunction', {place: 3, path, key, k2});
                             return;
                         }
                         const desc = Object.getOwnPropertyDescriptor(value, k2);
                         if (typeof desc?.value === 'function' && typeof desc?.get !== 'function') {
                             if (FqnImpl._isAllowed(value[k2])) {
                                 FqnImpl._setAttribute(value[k2], `${fullPath}.${k2}`, 'STATIC', key, k2);
-                            } else {
-                                // FqnImpl._ignore('isNotAllowed', {place: 3, path, key, k2});
                             }
-                        } else {
-                            // FqnImpl._ignore('InvalidDescriptor', {place: 3, path, key, k2, value: typeof desc?.value, get: typeof desc?.get});
                         }
                     });
-                    break;
-                default:
-                    // FqnImpl._ignore('invalidType', {place: 1, path, key, type: typeof value});
                     break;
             }
         });
@@ -238,10 +157,10 @@ class FqnImpl implements IFqn {
     /**
      * Patches given object (function, class, file, module, namespace, ...)
      * */
-    patch(obj: ValueAny, ...prefixes: Array<string>): void {
+    patch(obj: FqnValueLike, ...prefixes: Array<string>): void {
         const names = prefixes.map(value => FqnImpl._clearName(value)).filter(value => !!value);
         if (!obj || !FqnImpl._isAllowed(obj)) {
-            throw new DeveloperFqnException('Invalid value', obj);
+            Leyyo.raise(FqnImpl, 'Invalid value', {value: obj});
         } else {
             this._run((typeof obj === 'function') ? obj.prototype : obj, names.length > 0 ? names.join('.') : null, -1);
         }
@@ -249,10 +168,10 @@ class FqnImpl implements IFqn {
     /**
      * Patches given object (function, class, file, module, namespace, ...)
      * */
-    patchModule(obj: ValueAny, depth = 1, ...prefixes: Array<string>): void {
+    patchModule(obj: FqnValueLike, depth = 1, ...prefixes: Array<string>): void {
         const names = prefixes.map(value => FqnImpl._clearName(value)).filter(value => !!value);
         if (!obj || !FqnImpl._isAllowed(obj)) {
-            throw new DeveloperFqnException('Invalid value', obj);
+            Leyyo.raise(FqnImpl, 'Invalid value', {value: obj});
         } else {
             this._run((typeof obj === 'function') ? obj.prototype : obj, names.length > 0 ? names.join('.') : null, depth);
         }
@@ -262,7 +181,7 @@ class FqnImpl implements IFqn {
      * Returns fqn key
      * */
     get key(): Symbol {
-        return _KEY;
+        return Leyyo.FQN_KEY;
     }
 
     /**
@@ -282,9 +201,9 @@ class FqnImpl implements IFqn {
                 case 'symbol':
                     return Symbol.name;
                 case 'object':
-                    return value[_KEY] ?? value.constructor[_KEY] ?? value.constructor.name ?? null;
+                    return value[Leyyo.FQN_KEY] ?? value.constructor[Leyyo.FQN_KEY] ?? value.constructor.name ?? undefined;
                 case "function":
-                    return value[_KEY] ?? value.name ?? null;
+                    return value[Leyyo.FQN_KEY] ?? value.name ?? undefined;
             }
         } catch (e) {
         }
@@ -294,22 +213,29 @@ class FqnImpl implements IFqn {
     /**
      * Binds given function with saving fqn
      * */
-    fnBind<T extends FuncLike>(fn: T, holder: unknown): T {
-        const fqnName = this.get(fn);
-        fn = fn.bind(holder);
-        FqnImpl._setAttribute(fn, fqnName, 'BIND', fn.name);
-        return fn;
+    fnBind(owner: unknown, method: FuncLike): void {
+        const fqnName = this.get(method);
+        method = method.bind(owner);
+        FqnImpl._setAttribute(method, fqnName, 'BIND', method.name);
     }
 
     /**
      * Binds given functions with saving fqn
      * */
-    fnBindAll(holder: unknown, ...functions: Array<FuncLike>): void {
-        functions.forEach(fn => this.fnBind(fn, holder));
+    fnBindAll(owner: unknown, ...methods: Array<FuncLike>): void {
+        methods.forEach(method => this.fnBind(owner, method));
+    }
+
+    patchModuleOverwrite(obj: FqnValueLike, depth?: number, ...prefixes: Array<string>): void {
+    }
+
+    patchOverwrite(obj: FqnValueLike, ...prefixes: Array<string>): void {
     }
 
     // endregion public
 }
+export const fqn: FqnLike = new FqnImpl();
+Leyyo.patch(FqnImpl);
+Leyyo.fqnSet(fqn);
 
-export const fqn: IFqn = new FqnImpl();
-fqn.patch({FqnImpl, Core}, 'leyyo');
+

@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {fqn} from "../../src/Fqn";
+import {fqn} from "../FqnImpl";
 
 export module mdl1 {
     export class Class1 {
@@ -17,4 +17,4 @@ export module mdl1 {
     }
     export function func1(): void {return;}
 }
-fqn.patchModule({mdl1});
+fqn.patchModule({mdl1}, 1);

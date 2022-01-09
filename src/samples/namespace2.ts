@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {fqn} from "../../src/Fqn";
+import {fqn} from "../FqnImpl";
 
 export namespace ns2 {
     export class Class1 {

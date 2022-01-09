@@ -1,4 +1,4 @@
-import {Fqn} from "../../dist";
+import {Fqn} from "../annotations";
 
 @Fqn()
 export class GetterSetter {

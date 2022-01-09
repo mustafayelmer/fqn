@@ -1,6 +1,6 @@
 {
   "name": "@leyyo/fqn",
-  "version": "1.0.7",
+  "version": "1.0.11",
   "description": "FQN (Fully Qualified Name) for JavaScript/TypeScript",
   "keywords": [
     "fqn",
@@ -31,8 +31,8 @@
     "test:watch": "jest --watch --config=jest.json",
     "test:coverage": "jest --config=jest.json --coverage --coverageDirectory=coverage",
     "start": "npm run lint && npm run build && npm run run:js",
-    "run:js": "node dist/index.js",
-    "run:ts": "node -r ts-node/register src/index.ts",
+    "run:js": "node dist/server.js",
+    "run:ts": "node -r ts-node/register src/server.ts",
     "~publish": "npm run build && npm publish -access=public",
     "~install": "npm install",
     "~outdated": "npm outdated",
@@ -45,7 +45,6 @@
   "devDependencies": {
     "@types/jest": "^27.0.2",
     "@types/node": "^16.10.3",
-    "@types/uuid": "^8.3.1",
     "@typescript-eslint/eslint-plugin": "^4.13.0",
     "@typescript-eslint/parser": "^4.13.0",
     "eslint": "^7.18.0",
