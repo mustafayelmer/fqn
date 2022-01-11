@@ -12,6 +12,7 @@ export function Fqn(...prefixes: Array<string>): ClassDecorator {
         fqn.patch({[(target as FuncLike).name]: target}, ...prefixes);
     };
 }
+// noinspection JSUnusedGlobalSymbols
 export function FqnForce(...prefixes: Array<string>): ClassDecorator {
     return (target: unknown) => {
         fqn.patch({[(target as FuncLike).name]: target}, ...prefixes);

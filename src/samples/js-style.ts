@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import {fqn} from "../FqnImpl";
 
 export const js1Fnc1 = (): void => {return}

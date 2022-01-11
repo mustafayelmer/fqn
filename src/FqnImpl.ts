@@ -1,9 +1,10 @@
-// noinspection JSUnusedGlobalSymbols
+// noinspection JSUnusedGlobalSymbols,JSUnusedLocalSymbols
 
-import {FqnLike, FqnValueLike, FuncLike, Leyyo, Severity} from "@leyyo/core";
+import {FqnLike, FqnValueLike, FuncLike, Leyyo} from "@leyyo/core";
 
 class FqnImpl implements FqnLike {
     // region property
+    private static _initialized: boolean;
     private static SYS_FUNCTIONS: Array<string> = ['constructor', '__defineGetter__', '__defineSetter__', 'hasOwnProperty',
         '__lookupGetter__', '__lookupSetter__', 'isPrototypeOf', 'propertyIsEnumerable',
         'toString', 'valueOf', '__proto__', 'toLocaleString', 'toJSON', '__esModule'];
@@ -11,7 +12,6 @@ class FqnImpl implements FqnLike {
     private static ALLOWED: Array<string> = ['object', 'function'];
     private readonly _sets: Set<unknown> = new Set<unknown>();
     // endregion property
-
     // region private-static
     private static _isAllowed(value: unknown): boolean {
         return this.ALLOWED.includes(typeof value);
@@ -21,13 +21,13 @@ class FqnImpl implements FqnLike {
         if (desc) { return; }
         try {
             Object.defineProperty(holder, Leyyo.FQN_KEY, {value: `${path}`, configurable: false, writable: false, enumerable: false});
-            Leyyo.log(FqnImpl, Severity.INFO, path, {type, keys});
+            Leyyo.developerInfo(path, __filename, {type, keys});
         } catch (e) {
             try {
                 holder[Leyyo.FQN_KEY] = path;
-                Leyyo.log(FqnImpl, Severity.INFO, path, {type, keys});
+                Leyyo.developerInfo(path, __filename, {type, keys});
             } catch (e) {
-                Leyyo.log(FqnImpl, Severity.WARN, e.message, {name: e.name, type, keys});
+                Leyyo.nativeLog(e.message, __filename, {name: e.name, type, keys});
             }
         }
 
@@ -35,7 +35,7 @@ class FqnImpl implements FqnLike {
 
     private static _clearName(value: string): string | null {
         if (typeof value !== 'string') {
-            Leyyo.raise(FqnImpl, 'Invalid prefix', {value});
+            Leyyo.developerError('Invalid prefix', __filename, {value, fn: '_clearName'});
         }
         let name = Leyyo.clazz(value);
         if (!name) {return null;}
@@ -149,6 +149,13 @@ class FqnImpl implements FqnLike {
     // endregion private-instance
 
     constructor() {
+        if (FqnImpl._initialized) {
+            Leyyo.developerError('Already initialized', __filename, {$p: '@leyyo/fqn'});
+        }
+        FqnImpl._initialized = true;
+        Leyyo.addPackage('@leyyo/fqn');
+        Leyyo.patch(FqnImpl);
+        Leyyo.fqnSet(this);
         setTimeout(() => {
             this._sets.clear();
         }, 5000);
@@ -160,7 +167,7 @@ class FqnImpl implements FqnLike {
     patch(obj: FqnValueLike, ...prefixes: Array<string>): void {
         const names = prefixes.map(value => FqnImpl._clearName(value)).filter(value => !!value);
         if (!obj || !FqnImpl._isAllowed(obj)) {
-            Leyyo.raise(FqnImpl, 'Invalid value', {value: obj});
+            Leyyo.developerError('Invalid value', __filename, {value: obj, fn: 'patch'});
         } else {
             this._run((typeof obj === 'function') ? obj.prototype : obj, names.length > 0 ? names.join('.') : null, -1);
         }
@@ -171,7 +178,7 @@ class FqnImpl implements FqnLike {
     patchModule(obj: FqnValueLike, depth = 1, ...prefixes: Array<string>): void {
         const names = prefixes.map(value => FqnImpl._clearName(value)).filter(value => !!value);
         if (!obj || !FqnImpl._isAllowed(obj)) {
-            Leyyo.raise(FqnImpl, 'Invalid value', {value: obj});
+            Leyyo.developerError('Invalid value', __filename, {value: obj, fn: 'patchModule'});
         } else {
             this._run((typeof obj === 'function') ? obj.prototype : obj, names.length > 0 ? names.join('.') : null, depth);
         }
@@ -206,6 +213,7 @@ class FqnImpl implements FqnLike {
                     return value[Leyyo.FQN_KEY] ?? value.name ?? undefined;
             }
         } catch (e) {
+            Leyyo.nativeLog(e, __filename, {value, type: typeof value});
         }
         return undefined;
     }
@@ -235,7 +243,3 @@ class FqnImpl implements FqnLike {
     // endregion public
 }
 export const fqn: FqnLike = new FqnImpl();
-Leyyo.patch(FqnImpl);
-Leyyo.fqnSet(fqn);
-
-

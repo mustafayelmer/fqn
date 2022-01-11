@@ -1,6 +1,6 @@
 {
   "name": "@leyyo/fqn",
-  "version": "1.0.11",
+  "version": "1.0.14",
   "description": "FQN (Fully Qualified Name) for JavaScript/TypeScript",
   "keywords": [
     "fqn",
@@ -60,6 +60,7 @@
   },
   "dependencies": {
     "@leyyo/core": "^1.0.1",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "dotenv": "^10.0.0"
   }
 }

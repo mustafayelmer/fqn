@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import {Fqn} from "../annotations";
 
 @Fqn()

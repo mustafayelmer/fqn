@@ -1,4 +1,7 @@
 import { strict as assert } from 'assert';
+import dotenv from 'dotenv';
+dotenv.config();
+
 import {ns1} from "../src/samples/namespace1";
 import {ns2} from "../src/samples/namespace2";
 import {mdl1} from "../src/samples/module1";
